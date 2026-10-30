@@ -1,0 +1,17 @@
+(()=>{'use strict';
+const KEY='premiumTicketTracker.v1',UNDO_KEY='premiumTicketTracker.undo.v1';
+let lastSerialized=localStorage.getItem(KEY)||'[]',undoing=false,hideTimer=0;
+const safeParse=v=>{try{const x=JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch{return[]}};
+const same=(a,b)=>a===b;
+function saveUndo(before,after){if(undoing||same(before,after))return;try{sessionStorage.setItem(UNDO_KEY,JSON.stringify({before,after,at:Date.now()}))}catch{};showUndo()}
+const originalSet=Storage.prototype.setItem;
+Storage.prototype.setItem=function(k,v){if(this===localStorage&&k===KEY){const next=String(v),before=localStorage.getItem(KEY)||'[]';if(!undoing&&!same(before,next))saveUndo(before,next);lastSerialized=next}return originalSet.call(this,k,v)};
+let bar=document.getElementById('ticketUndoBar');if(!bar){bar=document.createElement('div');bar.id='ticketUndoBar';bar.innerHTML='<span><strong>Ticket change saved.</strong> Made a mistake?</span><button type="button" id="ticketUndoBtn">Undo</button>';document.body.appendChild(bar)}
+const style=document.createElement('style');style.textContent=`#ticketUndoBar{position:fixed;left:50%;bottom:22px;transform:translate(-50%,18px);z-index:2147483646;display:flex;align-items:center;gap:16px;max-width:calc(100vw - 28px);padding:10px 11px 10px 14px;border-radius:12px;background:#153653;color:#fff;box-shadow:0 12px 34px rgba(10,35,58,.24);font:600 11px Inter,sans-serif;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease,visibility .16s}.ticket-undo-visible{opacity:1!important;visibility:visible!important;transform:translate(-50%,0)!important;pointer-events:auto!important}#ticketUndoBar span{white-space:nowrap}#ticketUndoBar strong{font-weight:800}#ticketUndoBtn{border:0;border-radius:8px;background:#fff;color:#153653;padding:7px 11px;font:800 10px Inter,sans-serif;cursor:pointer}#ticketUndoBtn:hover{background:#eef5fb}@media(max-width:520px){#ticketUndoBar{width:calc(100vw - 28px);justify-content:space-between}#ticketUndoBar span{white-space:normal}}`;
+document.head.appendChild(style);
+function showUndo(){clearTimeout(hideTimer);bar.classList.add('ticket-undo-visible');hideTimer=setTimeout(()=>bar.classList.remove('ticket-undo-visible'),10000)}
+function undo(){let snap;try{snap=JSON.parse(sessionStorage.getItem(UNDO_KEY)||'null')}catch{}if(!snap?.before)return;const current=localStorage.getItem(KEY)||'[]';undoing=true;try{originalSet.call(localStorage,KEY,snap.before);lastSerialized=snap.before;sessionStorage.setItem(UNDO_KEY,JSON.stringify({before:current,after:snap.before,at:Date.now()}))}finally{undoing=false}bar.classList.remove('ticket-undo-visible');window.dispatchEvent(new CustomEvent('ticket-data-updated',{detail:{source:'undo'}}));window.dispatchEvent(new StorageEvent('storage',{key:KEY,oldValue:current,newValue:snap.before,storageArea:localStorage,url:location.href}));setTimeout(()=>location.reload(),40)}
+bar.querySelector('#ticketUndoBtn').addEventListener('click',undo);
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName||'')){e.preventDefault();undo()}});
+window.addEventListener('storage',e=>{if(e.key===KEY&&typeof e.newValue==='string')lastSerialized=e.newValue});
+})();

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Ticket Tracker Floating Stamp",
+  "version": "1.0.0",
+  "description": "Instant floating PH timestamp button for the Ticket Tracking System.",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["floating-stamp.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "commands": {
+    "instant-stamp": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Space"
+      },
+      "description": "Capture an instant PH timestamp"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Floating Stamp"
+  }
+}

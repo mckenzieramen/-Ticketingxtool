@@ -1,0 +1,10 @@
+(()=>{'use strict';
+const KEY='premiumTicketTracker.v1';
+const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return[]}};
+const count=t=>Array.isArray(t.callAttemptHistory)?t.callAttemptHistory.length:(Number(t.callAttempts)||0);
+const style=document.createElement('style');style.textContent=`.attempt-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:12px}.attempt-summary-card{padding:11px 12px;border:1px solid #e1eaf3;border-radius:12px;background:linear-gradient(180deg,#fff,#f7fbff)}.attempt-summary-card small{display:block;color:#73869a;font:650 9px Inter,sans-serif;margin-bottom:5px}.attempt-summary-card strong{color:#153653;font:800 18px Inter,sans-serif}.attempt-summary-card em{display:block;margin-top:3px;color:#8091a3;font:600 9px Inter,sans-serif;font-style:normal}@media(max-width:600px){.attempt-summary{grid-template-columns:1fr}}`;
+document.head.appendChild(style);
+function ensure(){const history=document.getElementById('attemptHistory');if(!history)return null;let el=document.getElementById('callAttemptSummary');if(el)return el;el=document.createElement('div');el.id='callAttemptSummary';el.className='attempt-summary';history.insertAdjacentElement('beforebegin',el);return el}
+function render(){const el=ensure();if(!el)return;const tickets=read(),withAttempts=tickets.filter(t=>count(t)>0),total=withAttempts.reduce((s,t)=>s+count(t),0),highest=withAttempts.length?Math.max(...withAttempts.map(count)):0;el.innerHTML=`<div class="attempt-summary-card"><small>Total Call Attempts</small><strong>${total}</strong><em>Sum of all recorded attempts</em></div><div class="attempt-summary-card"><small>Tickets With Attempts</small><strong>${withAttempts.length}</strong><em>Tickets that were called again</em></div><div class="attempt-summary-card"><small>Highest Attempts / Ticket</small><strong>${highest}</strong><em>Most attempts on one ticket</em></div>`}
+render();setTimeout(render,300);window.addEventListener('storage',render);window.addEventListener('call-attempt-updated',render);window.addEventListener('ticket-data-updated',render);
+})();
